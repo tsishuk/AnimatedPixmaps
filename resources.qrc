@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>bird.png</file>
+        <file>insta.png</file>
+        <file>haus.jpg</file>
+        <file>ellipse.png</file>
+        <file>figure8.png</file>
+        <file>arrows.png</file>
+        <file>8ball.png</file>
+        <file>Basketball.png</file>
+        <file>Target.png</file>
+        <file>calculator.png</file>
+        <file>dictionary.png</file>
+    </qresource>
+</RCC>
