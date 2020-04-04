@@ -1,7 +1,7 @@
 SOURCES += \
     main.cpp
 
-QT += core gui widgets
+QT += widgets
 
 RESOURCES += \
     resources.qrc
