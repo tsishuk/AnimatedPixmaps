@@ -19,25 +19,82 @@ public:
 };
 
 
+
+class Button : public QGraphicsWidget
+{
+    Q_OBJECT
+public:
+    Button(const QPixmap &pixmap, QGraphicsItem *parent = nullptr):
+        QGraphicsWidget(parent), pix(pixmap)
+    {
+        this->setGeometry(0,0,100,100);
+    }
+
+    QRectF boundingRect() const override
+    {
+        return QRectF(0, 0, 100, 100);
+    }
+
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *) override
+    {
+        bool down = option->state & QStyle::State_Sunken;
+
+        if (down){
+            painter->setBrush(Qt::red);
+            painter->drawPixmap(3, 3, pix);
+            painter->drawEllipse(1,1,25,25);
+
+        }
+        else
+            painter->drawPixmap(0, 0, pix);
+    }
+
+signals:
+    void pressed();
+
+protected:
+    void mousePressEvent(QGraphicsSceneMouseEvent *event) override
+    {
+        emit pressed();
+        update();
+    }
+
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override
+    {
+        update();
+    }
+
+private:
+    QPixmap pix;
+};
+
+
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
     QPixmap calc(":/calculator.png");
     QPixmap dict(":/dictionary.png");
     QPixmap elipse(":/ellipse.png");
+    QPixmap stateImage1(":/figure8.png");
 
     QGraphicsScene scene(QRectF(-200, -200, 500, 500));
     QGraphicsView view(&scene);
 
-    //QGraphicsPixmapItem* pPixmapItem = new QGraphicsPixmapItem(calc);
+    Button* btn1 = new Button(stateImage1);
+    btn1->setPos(-50, -150);
+    btn1->setZValue(1);
+    Button* btn2 = new Button(stateImage1);
+    btn2->setPos(-200, -150);
+    btn2->setZValue(2);
+
+
     Pixmap* pPixmapItem = new Pixmap(calc);
     pPixmapItem->setPos(-20,20);
 
-    //QGraphicsPixmapItem* pPixmapItem2 = new QGraphicsPixmapItem(dict);
     Pixmap* pPixmapItem2 = new Pixmap(dict);
     pPixmapItem2->setOffset(60,60);
 
-    //QGraphicsPixmapItem* pPixmapItem3 = new QGraphicsPixmapItem(elipse);
     Pixmap* pPixmapItem3 = new Pixmap(elipse);
     pPixmapItem3->setOffset(0,0);
 
@@ -47,17 +104,20 @@ int main(int argc, char** argv)
     QPushButton* btnSecond = new QPushButton("Second");
     btnSecond->setProperty("pos",QPointF(30,150));
 
-
+    scene.addItem(btn1);
+    scene.addItem(btn2);
     scene.addItem(pPixmapItem);
     scene.addItem(pPixmapItem2);
     scene.addItem(pPixmapItem3);
-    scene.addWidget(btn);
     scene.addWidget(btnSecond);
+
+
 
 
     QStateMachine*  psm = new QStateMachine;
 
-    QState* pFirstState = new QState(psm);
+    QState* rootState = new QState;
+    QState* pFirstState = new QState(rootState);
     QPoint firstStatePoint(100,200);
     pFirstState->assignProperty(btnSecond, "pos", firstStatePoint);
     pFirstState->assignProperty(pPixmapItem, "pos", QPointF(-60,60));
@@ -65,13 +125,15 @@ int main(int argc, char** argv)
     pFirstState->assignProperty(pPixmapItem3, "pos", QPointF(140,-40));
 
 
-    QState* pSecondState = new QState(psm);
+    QState* pSecondState = new QState(rootState);
     pSecondState->assignProperty(btnSecond, "pos", QPointF(200,100));
     pSecondState->assignProperty(pPixmapItem, "pos", QPointF(60,-60));
     pSecondState->assignProperty(pPixmapItem2, "pos", QPointF(-120,30));
     pSecondState->assignProperty(pPixmapItem3, "pos", QPointF(40,140));
 
-    psm->setInitialState(pFirstState);
+    psm->addState(rootState);
+    psm->setInitialState(rootState);
+    rootState->setInitialState(pFirstState);
 
 
     QParallelAnimationGroup* group = new QParallelAnimationGroup;
@@ -90,11 +152,16 @@ int main(int argc, char** argv)
     group->addAnimation(pAnim4);
 
 
-    QSignalTransition* pTrans1 = pFirstState->addTransition(btn, SIGNAL(clicked()), pSecondState);
-    pTrans1->addAnimation(group);
+    //QSignalTransition* pTrans1 = pFirstState->addTransition(btn, SIGNAL(clicked()), pSecondState);
+    QAbstractTransition* trans = rootState->addTransition(btn1, SIGNAL(pressed()), pFirstState);
+    trans->addAnimation(group);
+    //pTrans1->addAnimation(group);
 
-    QSignalTransition* pTrans2 = pSecondState->addTransition(btn, SIGNAL(clicked()), pFirstState);
-    pTrans2->addAnimation(group);
+    trans = rootState->addTransition(btn2, SIGNAL(pressed()), pSecondState);
+    trans->addAnimation(group);
+
+    //QSignalTransition* pTrans2 = pSecondState->addTransition(btn, SIGNAL(clicked()), pFirstState);
+    //pTrans2->addAnimation(group);
 
     psm->start();
 
